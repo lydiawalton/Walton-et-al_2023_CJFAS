@@ -1,0 +1,105 @@
+---
+title: "Myctophid manuscript site map"
+author: "Lydia Walton"
+date: "2023-05-21"
+output: html_document
+---
+
+```{r setting everything up,  include=FALSE}
+rm(list = ls(all=T)) # this code clears your environment
+dev.off() #close all open plots
+
+library(here) #set working directory
+library(dplyr) # data wrangling
+library(tidyr) # data wrangling
+library(ggplot2)
+library(ggrepel)
+library(ggmap)
+library(sf)
+library(raster)
+library(maps) 
+library(mapdata)
+library(maptools)
+library(rgeos)
+library(rgdal)
+library(ggsn)
+library(PBSmapping)
+library(RColorBrewer)
+library(viridis)
+library(htmlwidgets)
+library(plotly)
+
+library(ggsn)
+
+```
+
+
+# Making the map {.tabset}
+## Hakai Base Map
+```{r code from the Hakai github/Claire/Wes}
+
+# Hakai data
+hakai <- readOGR("Shapefiles/COAST_TEST2.shp")
+
+str(hakai)
+
+data(nepacLLhigh)
+
+# crop to Bamfield then transform to UTM zone 10
+ggplot() +
+  geom_polygon(data = nepacLLhigh, aes(x = X, y = Y, group = PID),
+               col = "black", fill = "grey75", lwd = 0.01) +
+  coord_map(xlim = c(-134, -122), ylim = c(47.5, 55)) +
+  theme_classic()
+
+```
+
+## Add myct site data
+```{r}
+myctsitedata <- read.csv("Data/myct_sitedata.csv")
+
+myctsitedata$Exact.Site <- factor(myctsitedata$Exact.Site, levels = c("Set 1", "Set 2", 
+                                  "Set 3", "Set 4", "Set 12", "Set 13", "Set 14","Set 15","Set 17", "Set 18", "Set 19", "Set 20", "Set 21"))
+
+myctsitedata$Year <- as.factor(myctsitedata$Year)
+
+myctsitedata.subset <- myctsitedata %>% 
+  subset(select = c(Sample.ID, Year, Exact.Site, Lat, Lon, Trawl.Depth))
+
+myctsitedata.subset <- na.omit(myctsitedata.subset)
+
+ggplot() +
+  geom_polygon(data = nepacLLhigh, aes(x = X, y = Y, group = PID),
+               col = "black", fill = "grey75", lwd = 0.01) +
+  coord_map(xlim = c(-134, -122), ylim = c(47.5, 55)) +
+  theme_classic() +
+  geom_point(data=myctsitedata.subset, aes(x= Lon, y = Lat, color = Exact.Site, shape = Year), 
+             size = 3, alpha = 0.8) +
+  scale_color_manual(values = c("#8EEDF7","#3B6064", "#A22C29", "#DB7F67", "#BA2C73","#659157", "#FE4A49", "#16F4D0","#3E517A", "#81E979", "#EF798A", "#7E78D2", "#FFBF00" )) +
+  scale_shape_manual(values = c(19, 18)) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  labs(color = "Site") +
+  #theme(legend.position = "bottom")
+  
+#Add north arrow to the plot
+  geom_segment(arrow = arrow(length = unit(0.2, "cm")),
+               aes(x = -122.5, xend = -122.5, y = 54, yend = 54.75), linewidth = 0.7) +
+  annotate("text", x = -122.5, y = 55, label = "N",
+           fontface = "bold", size= 3.5) +
+  
+#Add scale bar to plot
+  annotate("rect", xmin = -134, xmax = -132, ymin = 47.5, ymax = 47.75, 
+           col = "black", fill = "black", size = 0.1) +
+  annotate("rect", xmin = -132, xmax = -130, ymin = 47.5, ymax = 47.75, 
+           col = "black", fill = "white", size = 0.1) +
+  
+  annotate("text", x = -134, y = 48, label = "0", size = 2.5) +
+  annotate("text", x = -132, y = 48, label = "150", size = 2.5) +
+  annotate("text", x = -130, y = 48, label = "300", size = 2.5) +
+  annotate("text", x = -132, y = 47.35, label = "Kilometres", size = 2.5) 
+ 
+
+
+```
+

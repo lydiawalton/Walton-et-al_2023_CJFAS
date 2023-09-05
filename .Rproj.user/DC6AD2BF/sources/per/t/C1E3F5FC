@@ -1,0 +1,27 @@
+{
+    "id": "C1E3F5FC",
+    "path": "~/GitHub/Walton et al_2023_CJFAS/Scripts/Geometric-morphometric-analysis.R",
+    "project_path": "Scripts/Geometric-morphometric-analysis.R",
+    "type": "r_source",
+    "hash": "2135474159",
+    "contents": "",
+    "dirty": false,
+    "created": 1693951345818.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "124,10",
+        "scrollLine": "117"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1693951271,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1693951271,
+    "read_only": false,
+    "read_only_alternatives": []
+}

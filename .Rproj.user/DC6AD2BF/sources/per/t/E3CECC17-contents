@@ -1,0 +1,187 @@
+---
+title: "Myctophid geomorph"
+author: "Lydia Walton"
+date: "01/03/2023"
+output: html_document
+---
+```{r setting everything up, include=FALSE}
+rm(list = ls(all=T)) # this code clears your environment
+dev.off() #close all open plots
+
+library(geomorph)
+library(dplyr)
+library(quadcleanR)
+library(kableExtra)
+
+```
+
+# Comparing ID methods
+
+```{r comparing genetic and field IDs}
+setwd("C:/Users/lydia/OneDrive/Documents/Github/Myctophid_Manuscript")
+genetics <- read.csv("Data/Myct_geneticIDs.csv")
+surveyor <- read.csv("Data/Myct_surveyorIDs.csv")
+
+#Merge the two csv's together so you can compare the ID
+mergedID<-merge(genetics, surveyor, by="Sample.ID")
+
+#Remove the barcode non-compliant (compliant column = no) and flagged = yes
+ID.filt <- mergedID %>% 
+  filter(Barcode.Compliant == "Yes" & Flagged.Record == "")
+
+#Now compare the Identification column (genetics) to the Species column (surveyor)
+ID.subset<- ID.filt %>% subset(select=c(Sample.ID, ID.number, Collection.Date, Year, Identification, Species))
+
+#Add new column with names of the field IDs
+uniqueIDs <- unique(ID.subset$ID.number)
+uniqueIDs
+
+#Enter names here that match exactly the order of the above code ("185") would be ("Diaphus theta")
+NewIDs <- c("Family Myctophidae", "Diaphus theta", "Family Scopelarchidae", "Lampanyctus ritteri", "UNK", "Tactostoma macropus", "Chauliodus macouni", "Family Paralepididae", "Notolepis rissoi rissoi", "UNK", "Bathophilus flemingi", "Sagamichthys abei", "Benthalbella dentata", "UNK", "Protomycophum thompsoni", "Stenobrachius leucopsarus", "Symbolophorus californiense", "UNK", "Family Bathylagidae", "UNK", "Family Osmeridae", "Symbolophorus californiense", "Tarletonbeania crenularis", "UNK", "Stenobrachius leucopsarus", "Family Nemichthyidae", "Lampanyctus regalis")
+
+length(uniqueIDs)=length(NewIDs)
+
+#Add a new column (Field.ID) using the NewIDs created above - IDs made in the field now included
+ID.subset <- categorize(ID.subset, column = "ID.number", values = uniqueIDs, name = "Field.ID", binary = FALSE, categories = NewIDs, exact = TRUE)
+
+#Rename the genetics column
+ID.subset <- ID.subset %>% 
+  rename("Genetic.ID" = "Identification")
+
+
+```
+
+# Tables
+```{r make a table comparing the genetic IDs to the field IDs}
+str(ID.subset)
+
+#Compare if the answers in the Field.ID column match the answers in the Genetic.ID column
+ID.comparison <- ID.subset %>% 
+  mutate(Final_ID = if_else(Field.ID == Genetic.ID, "Correct", "Incorrect"))
+
+#Filter out the samples missing from the otolith comparison
+ID.comparison.filt <- ID.comparison %>% 
+  filter(Sample.ID != "2021_13_13_180_1" & Sample.ID != "2021_13_13_180_2" & Sample.ID != "2021_13_13_180_3" & Sample.ID != "2021_13_18_173_1" & Sample.ID != "2021_13_18_653_1")
+
+#Create a visual table showing the number of correct identifications made in the field
+ID.comp.table <- ID.comparison.filt %>% 
+  group_by(Final_ID) %>% 
+  summarise("Field identifications" = length(Final_ID))
+
+ID.comp.table %>% 
+  kbl(caption = "Table 1. Number of correct and incorrect field identifications after comparison with genetic data (n = 216)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+
+#Make a table showing which species were incorrectly identified
+(incorrect.field.table <- ID.comparison.filt %>% 
+  group_by(Field.ID, Genetic.ID, Final_ID) %>% 
+  filter(Final_ID == "Incorrect") %>%   
+  summarise("Number of IDs" = length(Final_ID)))
+
+```
+
+```{r compare the otolith identifications to the genetic IDs}
+setwd("C:/Users/lydia/OneDrive/Documents/Github/Myctophid_Manuscript")
+otolith <- read.csv("Data/Myct_otolithIDs.csv")
+
+#Merge the two csv's together so you can compare the ID
+mergedID.otolith<-merge(otolith, genetics, by="Sample.ID")
+
+#Remove the barcode non-compliant (compliant column = no) and flagged = yes
+ID.filt.otolith <- mergedID.otolith %>% 
+  filter(Barcode.Compliant == "Yes" & Flagged.Record == "")
+
+#Save the filtered df as a csv
+#write.csv(ID.filt.otolith, "C:\\Users\\lydia\\Dropbox\\Myctophid Paper (LW)\\Coding\\Myctophid Code_LW\\merged_otolith_genetic.csv", row.names=FALSE)
+
+#Figure out which sample.ids are missing from otolith file
+setdiff(ID.subset$Sample.ID, ID.filt.otolith$Sample.ID)
+#We are missing "2021_13_13_180_1" "2021_13_13_180_2" "2021_13_13_180_3" "2021_13_18_173_1" "2021_13_18_653_1" from the otolith samples 
+
+#Now compare the Identification column (genetics) to the Species column (surveyor)
+ID.subset.otolith<- ID.filt.otolith %>% subset(select=c(Sample.ID, Otolith.ID, Collection.Date, Identification))
+
+#Rename the genetics column
+ID.subset.otolith <- ID.subset.otolith %>% 
+  rename("Genetic.ID" = "Identification")
+str(ID.subset)
+
+#Compare if the answers in the Field.ID column match the answers in the Genetic.ID column
+ID.comparison.otolith <- ID.subset.otolith %>% 
+  mutate(Final_ID = if_else(Otolith.ID == Genetic.ID, "Correct", "Incorrect"))
+
+#Create a visual table showing the number of correct identifications made in the field
+ID.comp.table.otolith <- ID.comparison.otolith %>% 
+  group_by(Final_ID) %>% 
+  summarise("Otolith identifications" = length(Final_ID))
+
+ID.comp.table.otolith %>% 
+  kbl(caption = "Table 2. Number of correct and incorrect otolith identifications after comparison with genetic data (n = 216)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+
+#Make a table showing which species were incorrectly identified
+(incorrect.oto.table <- ID.comparison.otolith %>% 
+  group_by(Otolith.ID, Genetic.ID, Final_ID) %>% 
+  filter(Final_ID == "Incorrect") %>%   
+  summarise("Number of IDs" = length(Final_ID)))
+
+
+```
+
+```{r make summary table of fish identified with genetics}
+#Create a table demonstrating the fish types identified
+myct.summary.table <- ID.filt %>% 
+  group_by(Identification) %>% 
+  summarise("Number of samples" = length(Identification))
+
+myct.summary.table %>% 
+  kbl(caption = "Table 1. Number of fish samples identified by genetic analysis in 2021 and 2022 (n = 221)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+```{r summary table of the fish identified visually}
+myct.visual.table <- ID.comparison %>% 
+  group_by(Field.ID) %>% 
+  summarise("Number of samples" = length(Field.ID))
+
+myct.visual.table %>% 
+  kbl(caption = "Table 2. Number of fish samples identified by fishery observers in 2021 and 2022 (n = 221)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+
+```{r summary table of the fish identified using otoliths}
+myct.otolith.table <- ID.comparison.otolith %>% 
+  group_by(Otolith.ID) %>% 
+  summarise("Number of samples" = length(Otolith.ID))
+
+myct.otolith.table %>% 
+  kbl(caption = "Table 3. Number of fish samples identified by a trained otolith expert in 2021 and 2022 (n = 221)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+
+```{r summary table of incorrect field identifications compared to genetics}
+incorrect.field.table <- ID.comparison %>% 
+  group_by(Field.ID, Genetic.ID, Final_ID) %>% 
+  filter(Final_ID == "Incorrect") %>%   
+  summarise("Number of IDs" = length(Final_ID))
+
+incorrect.field.table %>% 
+  kbl(caption = "Table 5. Number of fish samples identified incorrectly by a trained fishery observers in 2021 and 2022 (n = 221)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+
+
+```{r summary table of incorrect otolith identifications compared to genetics}
+incorrect.oto.table <- ID.comparison.otolith %>% 
+  group_by(Otolith.ID, Genetic.ID, Final_ID) %>% 
+  filter(Final_ID == "Incorrect") %>%   
+  summarise("Number of IDs" = length(Final_ID))
+
+incorrect.oto.table %>% 
+  kbl(caption = "Table 4. Number of fish samples identified incorrectly by a trained otolith expert in 2021 and 2022 (n = 221)") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
